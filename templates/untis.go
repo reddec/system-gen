@@ -2,7 +2,7 @@ package templates
 
 import "text/template"
 
-var ProjectUnitTemplate =  template.Must(template.New("").Parse(`[Unit]
+var ProjectUnitTemplate = template.Must(template.New("").Parse(`[Unit]
 Description={{.Name}}
 
 [Service]
@@ -14,7 +14,7 @@ RemainAfterExit=yes
 WantedBy=multi-user.target
 `))
 
-var ServiceUnitTemplate =  template.Must(template.New("").Parse(`[Unit]
+var ServiceUnitTemplate = template.Must(template.New("").Parse(`[Unit]
 Description={{.Name}} as part of {{.Project.Name}}
 PartOf={{.Project.Slug}}.service
 After={{.Project.Slug}}.service
@@ -25,7 +25,7 @@ After={{.Project.Slug}}.service
 Environment={{.}}
 {{- end}}
 {{- end}}
-ExecStart={{.ExecStart}}
+ExecStart={{.Binary}}
 Restart={{.Restart}}
 RestartSec={{.RestartSec}}
 
@@ -33,18 +33,18 @@ RestartSec={{.RestartSec}}
 WantedBy={{.Project.Slug}}.service
 `))
 
-var OneShotUnitTemplate =  template.Must(template.New("").Parse(`[Unit]
+var OneShotUnitTemplate = template.Must(template.New("").Parse(`[Unit]
 Description={{.Name}}
 
 [Service]
 Type=oneshot
-ExecStart={{.ExecStart}}
+ExecStart={{.Binary}}
 
 [Install]
 WantedBy=multi-user.target
 `))
 
-var TimerUnitTemplate =  template.Must(template.New("").Parse(`[Unit]
+var TimerUnitTemplate = template.Must(template.New("").Parse(`[Unit]
 Description=Timer {{.Name}} as part of {{.Project.Name}}
 PartOf={{.Project.Slug}}.service
 After={{.Project.Slug}}.service

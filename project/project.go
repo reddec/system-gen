@@ -3,10 +3,13 @@ package project
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"github.com/iancoleman/strcase"
 	"golang.org/x/sys/unix"
 	"io/ioutil"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"system-gen/templates"
@@ -42,9 +45,9 @@ func Open(dirPath string) (*Project, error) {
 
 type Project struct {
 	Name     string     `json:"name"`
-	Services []*Service `json:"services"`
-	Timers   []*Timer   `json:"timers"`
-	OneShots []*OneShot `json:"oneshots"`
+	Services []*Service `json:"services,omitempty"`
+	Timers   []*Timer   `json:"timers,omitempty"`
+	OneShots []*OneShot `json:"oneshots,omitempty"`
 	path     string
 }
 
@@ -219,6 +222,7 @@ type Renderer interface {
 type Service struct {
 	Name        string            `json:"name"`
 	ExecStart   string            `json:"exec_start"`
+	Args        []string          `json:"args,omitempty"`
 	Restart     string            `json:"restart"`
 	RestartSec  int               `json:"restart_sec"`
 	Environment map[string]string `json:"environment,omitempty"`
@@ -243,6 +247,10 @@ func (srv *Service) Envs() []string {
 	return ans
 }
 
+func (srv *Service) Binary() string {
+	return buildExec(srv.ExecStart, srv.Args)
+}
+
 func (srv *Service) Slug() string {
 	return srv.Project.Slug() + "-" + strings.ToLower(strcase.ToKebab(srv.Name))
 }
@@ -250,6 +258,7 @@ func (srv *Service) Slug() string {
 type OneShot struct {
 	Name        string            `json:"name"`
 	ExecStart   string            `json:"exec_start"`
+	Args        []string          `json:"args,omitempty"`
 	Environment map[string]string `json:"environment,omitempty"`
 	Project     *Project          `json:"-"`
 }
@@ -270,6 +279,10 @@ func (srv *OneShot) Envs() []string {
 		ans = append(ans, strconv.Quote(k+"="+v))
 	}
 	return ans
+}
+
+func (srv *OneShot) Binary() string {
+	return buildExec(srv.ExecStart, srv.Args)
 }
 
 func (srv *OneShot) Slug() string {
@@ -299,4 +312,28 @@ func (srv *Timer) Slug() string {
 
 func (srv *Timer) Launcher() *OneShot {
 	return srv.Project.OneShotByName(srv.Launch)
+}
+
+func buildExec(command string, args []string) string {
+	var cmd = command
+	if resolved, err := exec.LookPath(cmd); err == nil {
+		fmt.Println("resolved binary as", resolved)
+		if absPath, err := filepath.Abs(resolved); err == nil {
+			fmt.Println("absolute path to binary is", absPath, "and will be used as executable")
+			cmd = absPath
+		} else {
+			cmd = resolved
+		}
+	} else {
+		fmt.Println("can't resolve binary:", err)
+		fmt.Println("maybe path to binary is incorrect?")
+	}
+	if len(args) > 0 {
+		var ans []string
+		for _, arg := range args {
+			ans = append(ans, strconv.Quote(arg))
+		}
+		cmd = cmd + " " + strings.Join(ans, " ")
+	}
+	return cmd
 }

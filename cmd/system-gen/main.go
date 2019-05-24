@@ -2,12 +2,8 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"github.com/jessevdk/go-flags"
 	"os"
-	"os/exec"
-	"path/filepath"
-	"strings"
 	"system-gen/project"
 )
 
@@ -70,28 +66,10 @@ func (cb *createService) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-
-	//TODO: escape?
-	execStart := cb.Args.Command
-	if resolved, err := exec.LookPath(execStart); err == nil {
-		execStart = resolved
-		fmt.Println("resolved binary as", resolved)
-		if absPath, err := filepath.Abs(resolved); err == nil {
-			fmt.Println("absolute path to binary is", absPath, "and will be used as executable")
-			execStart = absPath
-		}
-	} else {
-		fmt.Println("can't resolve binary:", err)
-		fmt.Println("maybe path to binary is incorrect?")
-	}
-
-	if len(cb.Args.Args) > 0 {
-		execStart = execStart + " " + strings.Join(cb.Args.Args, " ")
-	}
-
 	srv := &project.Service{
 		Name:        cb.Args.ServiceName,
-		ExecStart:   execStart,
+		ExecStart:   cb.Args.Command,
+		Args:        cb.Args.Args,
 		Restart:     cb.Restart,
 		RestartSec:  cb.RestartSec,
 		Environment: cb.Environment,
@@ -116,27 +94,10 @@ func (cb *createOneShot) Execute(args []string) error {
 		return err
 	}
 
-	//TODO: escape?
-	execStart := cb.Args.Command
-	if resolved, err := exec.LookPath(execStart); err == nil {
-		execStart = resolved
-		fmt.Println("resolved binary as", resolved)
-		if absPath, err := filepath.Abs(resolved); err == nil {
-			fmt.Println("absolute path to binary is", absPath, "and will be used as executable")
-			execStart = absPath
-		}
-	} else {
-		fmt.Println("can't resolve binary:", err)
-		fmt.Println("maybe path to binary is incorrect?")
-	}
-
-	if len(cb.Args.Args) > 0 {
-		execStart = execStart + " " + strings.Join(cb.Args.Args, " ")
-	}
-
 	srv := &project.OneShot{
 		Name:        cb.Args.Name,
-		ExecStart:   execStart,
+		ExecStart:   cb.Args.Command,
+		Args:        cb.Args.Args,
 		Environment: cb.Environment,
 	}
 	p.OneShot(srv)
